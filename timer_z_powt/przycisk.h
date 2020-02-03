@@ -1,6 +1,4 @@
-// Touch screen library with X Y and Z (pressure) readings as well
-// as oversampling to avoid 'bouncing'
-// (c) ladyada / adafruit
+
 // Code under MIT License
 
 #ifndef _PRZYCISK_H_
@@ -12,15 +10,12 @@ class Przycisk {
         Przycisk(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2);
         Przycisk(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, char znak);
 
-        uint16_t pressure(void);
-        int readTouchY();
-        int readTouchX();
-        TSPoint_kbv getPoint();
-        int16_t pressureThreshhold;
+        void Paint();
+        int16_t IsPressed();
 
     private:
-        uint8_t _yp, _ym, _xm, _xp;
-        uint16_t _rxplate;
+        uint8_t _x1, _x2, _y1, _y2;
+        char _znak;
 };
 
 #endif
