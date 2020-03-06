@@ -28,7 +28,7 @@
 #define COMPDATE __DATE__ __TIME__
 #define MODEBUTTON 0                                        // Button pin on the esp for selecting modes. D3 for the Wemos!
 // #define TOKEN               "eDtTW5XThhi992DZdtcX"
-#define TBVERSION "Ver 1.1.5"
+#define TBVERSION "Ver 1.1.6"
 #define TOKEN               "WpiszNowyTokenWtoPol"
 #define THINGSBOARD_SERVER  "dom.romaniuk.pl"
 #define THINGSBOARD_PORT "1883"
@@ -68,7 +68,10 @@ char* thingsBoardPort = THINGSBOARD_PORT;
 
 // ================================================ SETUP ================================================
 void setup() {
-	delay(30000);
+  WiFi.mode(WIFI_STA);
+  WiFi.disconnect();
+
+	delay(60000); // 1 minuta
   // creat a unique deviceName for classroom situations (deviceName-123)
   chipId      = String(ESP_GETCHIPID);
   chipId      = "-"+chipId.substring(chipId.length()-3);
@@ -125,7 +128,7 @@ void setup() {
 
 
   IAS.begin();                              // Run IOTAppStory
-  IAS.setCallHomeInterval(3600);              // Call home interval in seconds(disabled by default), 0 = off, use 60s only for development. Please change it to at least 2 hours in production
+  IAS.setCallHomeInterval(7200);              // Call home interval in seconds(disabled by default), 0 = off, use 60s only for development. Please change it to at least 2 hours in production
   
 	
   //-------- Your Setup starts from here ---------------
