@@ -28,7 +28,7 @@
 #define COMPDATE __DATE__ __TIME__
 #define MODEBUTTON 0                                        // Button pin on the esp for selecting modes. D3 for the Wemos!
 // #define TOKEN               "eDtTW5XThhi992DZdtcX"
-#define TBVERSION "Ver 1.1.6"
+#define TBVERSION "Ver 1.1.15"
 #define TOKEN               "WpiszNowyTokenWtoPol"
 #define THINGSBOARD_SERVER  "dom.romaniuk.pl"
 #define THINGSBOARD_PORT "1883"
@@ -59,18 +59,21 @@ String chipId;
 // Use functions like atoi() and atof() to transform the char array to integers or floats
 // Use IAS.dPinConv() to convert Dpin numbers to integers (D6 > 14)
 
-char* LEDpin    = "2";																      // The value given here is the default value and can be overwritten by values saved in configuration mode
+char* LEDpin    = "2";				
+char* trigPin    = "2";
+char* echoPin    = "2";
 char* blinkTime = "1000";
 char* thingsBoardTime = "30000";
 char* thingsBoardToken = TOKEN;
 char* thingsBoardServer = THINGSBOARD_SERVER;
 char* thingsBoardPort = THINGSBOARD_PORT;
+char* pomiarOdleglosci = "1";
 
 // ================================================ SETUP ================================================
 void setup() {
   WiFi.mode(WIFI_STA);
   WiFi.disconnect();
-
+  Serial.println(F("Start prosze czekac 60s ...."));
 	delay(60000); // 1 minuta
   // creat a unique deviceName for classroom situations (deviceName-123)
   chipId      = String(ESP_GETCHIPID);
@@ -86,6 +89,9 @@ void setup() {
   IAS.addField(thingsBoardToken, "Device Token", 25, 'L');         // reference to org variable | field label value | max char return
   IAS.addField(thingsBoardServer, "Server name or ip", 25, 'L');         // reference to org variable | field label value | max char return
   IAS.addField(thingsBoardPort, "Tcp Port", 6, 'N');         // reference to org variable | field label value | max char return
+  IAS.addField(pomiarOdleglosci, "Pomiar odl:Wlacz", 1, 'C');         // reference to org variable | field label value | max char return
+  IAS.addField(trigPin, "trigpin", 2, 'P'); 
+  IAS.addField(echoPin, "echoPin", 2, 'P'); 
 
   // You can configure callback functions that can give feedback to the app user about the current state of the application.
   // In this example we use serial print to demonstrate the call backs. But you could use leds etc.
@@ -135,6 +141,8 @@ void setup() {
   
   
   pinMode(IAS.dPinConv(LEDpin), OUTPUT);
+  pinMode(IAS.dPinConv(trigPin), OUTPUT);
+  pinMode(IAS.dPinConv(echoPin), INPUT);
 
 
 
@@ -194,8 +202,8 @@ void loop() {
     
     tbEntry = millis();
 
-    static int32_t temperature, humidity, pressure;      // Store readings
-    static float  temperature1, humidity1, pressure1;      // Store readings
+    static int32_t temperature, humidity, pressure, odleglosc;      // Store readings
+    static float  temperature1, humidity1, pressure1, odleglosc1;      // Store readings
     
     BME280.getSensorData(temperature,humidity,pressure); // Get most recent readings
     temperature1 = temperature/100.0;
@@ -240,6 +248,22 @@ void loop() {
     };
     
     tb.sendTelemetry(data, 3);
+
+    if (atoi(pomiarOdleglosci) == 1){
+      digitalWrite(IAS.dPinConv(trigPin), LOW);
+      delayMicroseconds(2);
+      digitalWrite(IAS.dPinConv(trigPin), HIGH);
+      delayMicroseconds(10);
+      digitalWrite(IAS.dPinConv(trigPin), LOW);
+
+      odleglosc = pulseIn(IAS.dPinConv(echoPin), HIGH);
+
+      odleglosc1 = odleglosc*0.034/2;
+
+      Serial.print(F("Odleglosc: "));
+      Serial.println(odleglosc1); // Temperature in deci-degrees
+      tb.sendTelemetryFloat("distance", odleglosc1);
+    }
 
     Serial.println("Sending attributes data...");
 
