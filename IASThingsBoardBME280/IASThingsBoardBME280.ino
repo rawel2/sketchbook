@@ -1,34 +1,8 @@
-/*
-  This is an initial sketch to be used as a "blueprint" to create apps which can be used with IOTappstory.com infrastructure
-  Your code can be filled wherever it is marked.
-
-  Copyright (c) [2017] [Andreas Spiess]
-
-  Permission is hereby granted, free of charge, to any person obtaining a copy
-  of this software and associated documentation files (the "Software"), to deal
-  in the Software without restriction, including without limitation the rights
-  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-  copies of the Software, and to permit persons to whom the Software is
-  furnished to do so, subject to the following conditions:
-
-  The above copyright notice and this permission notice shall be included in all
-  copies or substantial portions of the Software.
-
-  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-  SOFTWARE.
-
-  IASBlink V1.0.2
-*/
 
 #define COMPDATE __DATE__ __TIME__
 #define MODEBUTTON 0                                        // Button pin on the esp for selecting modes. D3 for the Wemos!
 // #define TOKEN               "eDtTW5XThhi992DZdtcX"
-#define TBVERSION "Ver 1.1.15"
+#define TBVERSION "Ver 1.1.17"
 #define TOKEN               "WpiszNowyTokenWtoPol"
 #define THINGSBOARD_SERVER  "dom.romaniuk.pl"
 #define THINGSBOARD_PORT "1883"
@@ -59,15 +33,15 @@ String chipId;
 // Use functions like atoi() and atof() to transform the char array to integers or floats
 // Use IAS.dPinConv() to convert Dpin numbers to integers (D6 > 14)
 
-char* LEDpin    = "2";				
-char* trigPin    = "2";
-char* echoPin    = "2";
-char* blinkTime = "1000";
-char* thingsBoardTime = "30000";
-char* thingsBoardToken = TOKEN;
-char* thingsBoardServer = THINGSBOARD_SERVER;
-char* thingsBoardPort = THINGSBOARD_PORT;
-char* pomiarOdleglosci = "1";
+char *LEDpin    = "2";				
+char *trigPin    = "2";
+char *echoPin    = "2";
+char *blinkTime = "1000";
+char *thingsBoardTime = "30000";
+char *thingsBoardToken = TOKEN;
+char *thingsBoardServer = THINGSBOARD_SERVER;
+char *thingsBoardPort = THINGSBOARD_PORT;
+char *pomiarOdleglosci = "1";
 
 // ================================================ SETUP ================================================
 void setup() {
@@ -202,8 +176,10 @@ void loop() {
     
     tbEntry = millis();
 
-    static int32_t temperature, humidity, pressure, odleglosc;      // Store readings
+    static int32_t temperature, humidity, pressure, odleglosc[5];      // Store readings
     static float  temperature1, humidity1, pressure1, odleglosc1;      // Store readings
+    int32_t odlMin = 0,odlMax = 2147483647;
+    int8_t odlMinPos = 0,odlMaxPos = 0;
     
     BME280.getSensorData(temperature,humidity,pressure); // Get most recent readings
     temperature1 = temperature/100.0;
@@ -250,15 +226,32 @@ void loop() {
     tb.sendTelemetry(data, 3);
 
     if (atoi(pomiarOdleglosci) == 1){
-      digitalWrite(IAS.dPinConv(trigPin), LOW);
-      delayMicroseconds(2);
-      digitalWrite(IAS.dPinConv(trigPin), HIGH);
-      delayMicroseconds(10);
-      digitalWrite(IAS.dPinConv(trigPin), LOW);
+      odlMin = 0;
+      odlMax = 2147483647;
+      odlMinPos = 0;
+      odlMaxPos = 0;
+      
+      for(int8_t licz = 0; licz < 5 ; licz++){
+        odleglosc[licz] = zmierz1raz(); 
+        
+        if(odleglosc[licz] > odlMin){
+          odlMin = odleglosc[licz];
+          odlMinPos = licz;
+        }
+        if(odleglosc[licz] < odlMax){
+          odlMax = odleglosc[licz];
+          odlMaxPos = licz;
+        }
+        delay(100);
+      }
+      odleglosc[odlMaxPos] =0;
+      for(int8_t licz = 0; licz < 5 ; licz++){
+        if((licz != odlMinPos) && (licz != odlMaxPos)){
+          odleglosc[odlMaxPos] += odleglosc[licz];
+        }
+      }
 
-      odleglosc = pulseIn(IAS.dPinConv(echoPin), HIGH);
-
-      odleglosc1 = odleglosc*0.034/2;
+      odleglosc1 = odleglosc[odlMaxPos]*0.034/6;
 
       Serial.print(F("Odleglosc: "));
       Serial.println(odleglosc1); // Temperature in deci-degrees
@@ -277,4 +270,14 @@ void loop() {
 
   tb.loop();    
   
+}
+
+uint32_t zmierz1raz(){
+    digitalWrite(IAS.dPinConv(trigPin), LOW);
+    delayMicroseconds(2);
+    digitalWrite(IAS.dPinConv(trigPin), HIGH);
+    delayMicroseconds(10);
+    digitalWrite(IAS.dPinConv(trigPin), LOW);
+
+    return pulseIn(IAS.dPinConv(echoPin), HIGH); 
 }
