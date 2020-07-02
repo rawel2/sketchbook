@@ -2,7 +2,7 @@
 #define COMPDATE __DATE__ __TIME__
 #define MODEBUTTON 0                                        // Button pin on the esp for selecting modes. D3 for the Wemos!
 // #define TOKEN               "eDtTW5XThhi992DZdtcX"
-#define TBVERSION "Ver 1.1.17"
+#define TBVERSION "Ver 1.1.18"
 #define TOKEN               "WpiszNowyTokenWtoPol"
 #define THINGSBOARD_SERVER  "dom.romaniuk.pl"
 #define THINGSBOARD_PORT "1883"
@@ -47,6 +47,8 @@ char *pomiarOdleglosci = "1";
 void setup() {
   WiFi.mode(WIFI_STA);
   WiFi.disconnect();
+
+  
   Serial.println(F("Start prosze czekac 60s ...."));
 	delay(60000); // 1 minuta
   // creat a unique deviceName for classroom situations (deviceName-123)
@@ -177,7 +179,7 @@ void loop() {
     tbEntry = millis();
 
     static int32_t temperature, humidity, pressure, odleglosc[5];      // Store readings
-    static float  temperature1, humidity1, pressure1, odleglosc1;      // Store readings
+    static float  temperature1, humidity1, pressure1, odleglosc1,avgodleglosc1=0;      // Store readings
     int32_t odlMin = 0,odlMax = 2147483647;
     int8_t odlMinPos = 0,odlMaxPos = 0;
     
@@ -253,9 +255,25 @@ void loop() {
 
       odleglosc1 = odleglosc[odlMaxPos]*0.034/6;
 
+      if (avgodleglosc1 < 1){
+        avgodleglosc1 = odleglosc1; 
+      }
+               
       Serial.print(F("Odleglosc: "));
       Serial.println(odleglosc1); // Temperature in deci-degrees
-      tb.sendTelemetryFloat("distance", odleglosc1);
+      Serial.print(F("Odleglosc avg: "));
+      Serial.println(avgodleglosc1); // Temperature in deci-degrees
+      
+      if(odleglosc1 > 1.2*avgodleglosc1 || odleglosc1 < 0.8*avgodleglosc1){
+        Serial.print(F("Odleglosc ERROR "));
+        avgodleglosc1 = 0.95*avgodleglosc1 + 0.05*odleglosc1;
+      } 
+      else {
+        tb.sendTelemetryFloat("distance", odleglosc1);
+        avgodleglosc1 = 0.9*avgodleglosc1 + 0.1*odleglosc1;
+      }
+
+      
     }
 
     Serial.println("Sending attributes data...");
